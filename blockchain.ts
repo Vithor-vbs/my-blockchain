@@ -13,6 +13,9 @@ class Transaction{
 }
 
 class Block{
+
+    public nonce = Math.round(Math.random() * 999999999)
+
     constructor(
         public prevHash: string,
         public transaction: Transaction,
@@ -41,6 +44,25 @@ class Chain{
         return this.chain[this.chain.length - 1]
     }
 
+    mine(nonce: number){ // find a number that added nonce will produce a hash that starts with 4 zeros 
+        let solution = 1
+        console.log("mining...")
+
+        while(true){
+            const hash = crypto.createHash('MD5');
+            hash.update((nonce + solution).toString()).end()
+
+            const attempt = hash.digest('hex')
+
+            if (attempt.substring(0,4) === '0000'){
+                console.log(`golden nonce found: ${solution}`)
+                return solution
+            }
+
+            solution += 1
+        }
+    }
+
     addBlock(transaction: Transaction, senderPubKey: string, signature: Buffer){
         const verifier = crypto.createVerify('SHA256')
         verifier.update(transaction.toString())
@@ -49,6 +71,7 @@ class Chain{
 
         if (isValid){
             const newBlock = new Block(this.lastBlock.hash, transaction)
+            this.mine(newBlock.nonce)
             this.chain.push(newBlock)
         }
     }
@@ -80,3 +103,14 @@ class Wallet {
         Chain.instance.addBlock(transaction, this.pubKey, signature)
     }
 }
+
+
+const test = new Wallet()
+const test2 = new Wallet()
+const test3 = new Wallet()
+
+test.sendMoney(50, test2.pubKey)
+test2.sendMoney(23, test3.pubKey)
+test3.sendMoney(5, test2.pubKey)
+
+console.log(Chain.instance)

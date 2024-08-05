@@ -41,6 +41,7 @@ class Block {
         this.prevHash = prevHash;
         this.transaction = transaction;
         this.ts = ts;
+        this.nonce = Math.round(Math.random() * 999999999);
     }
     get hash() {
         const str = JSON.stringify(this);
@@ -56,12 +57,27 @@ class Chain {
     get lastBlock() {
         return this.chain[this.chain.length - 1];
     }
+    mine(nonce) {
+        let solution = 1;
+        console.log("mining...");
+        while (true) {
+            const hash = crypto.createHash('MD5');
+            hash.update((nonce + solution).toString()).end();
+            const attempt = hash.digest('hex');
+            if (attempt.substring(0, 4) === '0000') {
+                console.log(`golden nonce found: ${solution}`);
+                return solution;
+            }
+            solution += 1;
+        }
+    }
     addBlock(transaction, senderPubKey, signature) {
         const verifier = crypto.createVerify('SHA256');
         verifier.update(transaction.toString());
         const isValid = verifier.verify(senderPubKey, signature);
         if (isValid) {
             const newBlock = new Block(this.lastBlock.hash, transaction);
+            this.mine(newBlock.nonce);
             this.chain.push(newBlock);
         }
     }
@@ -85,3 +101,10 @@ class Wallet {
         Chain.instance.addBlock(transaction, this.pubKey, signature);
     }
 }
+const test = new Wallet();
+const test2 = new Wallet();
+const test3 = new Wallet();
+test.sendMoney(50, test2.pubKey);
+test2.sendMoney(23, test3.pubKey);
+test3.sendMoney(5, test2.pubKey);
+console.log(Chain.instance);
